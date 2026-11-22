@@ -1,0 +1,53 @@
+==================================================
+PRACTICAL 1
+AIM: Implement eBGP for IPv4
+==================================================
+
+Step 1: Add 2 PCs (PC0, PC1) and 2 PT Routers (Router0, Router1).
+
+Step 2: Connect all devices using Automatic connection.
+   * PC0 (Fa0)  --- Router0 (Fa0/0)
+   * PC1 (Fa0)  --- Router1 (Fa0/0)
+   * Router0 (Se2/0) --- Router1 (Se2/0)
+
+Step 3: Assign IP addresses to the end devices (Mask 255.255.255.0):
+   * PC0: IP 198.123.1.2, Default Gateway 198.123.1.1
+   * PC1: IP 198.123.3.2, Default Gateway 198.123.3.1
+
+Step 4: Assign IP addresses to router interfaces (Config tab > Port Status ON):
+   * Router0 Fa0/0:    198.123.1.1   255.255.255.0
+   * Router0 Serial2/0: 198.123.2.1  255.255.255.0
+   * Router1 Fa0/0:    198.123.3.1   255.255.255.0
+   * Router1 Serial2/0: 198.123.2.2  255.255.255.0
+   (Network 198.123.2.0 = router-to-router link)
+
+Step 5: Configure Router0 for BGP (AS 100):
+   R0> en
+   R0# conf t
+   R0(config)# router bgp 100
+   # network 198.123.1.0
+   # network 198.123.2.0
+   # neighbor 198.123.2.2 remote-as 200
+   # neighbor 198.123.3.2 remote-as 200
+
+Step 6: Configure Router1 for BGP (AS 200):
+   R1> en
+   R1# conf t
+   R1(config)# router bgp 200
+   # network 198.123.3.0
+   # network 198.123.2.0
+   # neighbor 198.123.2.1 remote-as 100
+   # neighbor 198.123.1.2 remote-as 100
+
+Step 7: Check BGP on each router:
+   show ip bgp summary
+   show ip route        (look for B routes)
+
+Step 8: Check connectivity (PC0 > Desktop > Command Prompt):
+   ping 198.123.3.2     (PC0 to PC1 - replies = success)
+
+Notes:
+ - Serial link stays down? Run "clock rate 64000" on the clock-icon (DCE) end.
+ - Neighbors 198.123.3.2 and 198.123.1.2 are PC addresses; they stay
+   Active/Idle. Real BGP session = 198.123.2.1 <-> 198.123.2.2.
+

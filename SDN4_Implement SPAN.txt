@@ -1,0 +1,54 @@
+==================================================
+PRACTICAL 4
+AIM: Implement SPAN
+==================================================
+
+Step 1: Add Switch0 (2960-24TT), Server0 (Server-PT), PC0 (PC-PT) and Sniffer0 (Sniffer).
+
+Step 2: Connect using Automatic connection (in this order):
+   * 1. Server0 Fa0 --- Switch0 Fa0/1
+   * 2. PC0 Fa0 --- Switch0 Fa0/2
+   * 3. Sniffer0 Eth0 --- Switch0 Fa0/3
+   (Same order = ports Fa0/1, Fa0/2, Fa0/3 are used as required.)
+
+Step 3: PC0 > Desktop > IP Configuration > Static:
+   * IP Address: 10.1.1.100
+   * Subnet Mask: 255.0.0.0
+   * Default Gateway: 0.0.0.0
+
+Step 4: Server0 > Desktop > IP Configuration > Static:
+   * IP Address: 10.1.1.200
+   * Subnet Mask: 255.0.0.0
+   * Default Gateway: 0.0.0.0
+
+Step 5: Sniffer0 > GUI tab: Service On, Incoming Packets Port0.
+
+Step 6: Configure Switch0 (click Switch0 > CLI):
+   Switch>en
+   Switch#conf t
+   Switch(config)#monitor session 1 source int fa0/1
+   Switch(config)#monitor session 1 destination int fa0/3
+   Switch(config)#^Z
+
+Step 7: Check the SPAN session:
+   Switch#sh monitor
+   (Expected: Session 1, Type Local Session, Source Ports Both: Fa0/1,
+    Destination Ports: Fa0/3, Encapsulation Native, Ingress Disabled)
+
+Step 8: In the sniffer clear all and only select ICMP:
+   * Sniffer0 > GUI > Edit Filters > Show All/None (clear all) > tick ICMP only.
+   * Click Clear (empties the packet list).
+
+Step 9: On desktop use ping (PC0 > Desktop > Command Prompt):
+   ping 10.1.1.200
+   (Expected: Sent = 4, Received = 4, Lost = 0)
+
+Step 10: Now check the sniffer. It consists of ICMP traffic.
+   * Sniffer0 > GUI > click one ICMP entry
+   * (Shows SRC IP 10.1.1.200 / DST IP 10.1.1.100 etc.)
+
+Notes:
+ - ^Z means press Ctrl+Z.
+ - Wait about 30 seconds for the switch ports to turn green before testing.
+ - Packets from the source port Fa0/1 are copied to the destination port Fa0/3.
+

@@ -1,0 +1,111 @@
+==================================================
+PRACTICAL 3
+AIM: Implement OSPF using Multi area
+==================================================
+
+Step 1: Add 3 routers (1841): Router0, Router1, Router2 and 2 Laptop-PT: Laptop0, Laptop1.
+
+Step 2: Connect using Automatic connection (in this order):
+   * 1. Router0 fa0/0 --- Router1 fa0/0   (network 10.10.10.0/30, Area 0)
+   * 2. Router1 fa0/1 --- Router2 fa0/0   (Area 1)
+   * 3. Router2 fa0/1 --- Laptop1 Fa0
+   * 4. Laptop0 Fa0 --- Router0 fa0/1
+   (Router1 = ABR, between Area 0 and Area 1)
+
+Step 3: Give IP address to the system (click laptop > Desktop > IP Configuration):
+   * Laptop0: IPv4 192.168.1.2, Subnet Mask 255.255.255.0, Default Gateway 192.168.1.1
+   * Laptop1: IPv4 192.168.2.2, Subnet Mask 255.255.255.0, Default Gateway 192.168.2.1
+   (Laptop IPs are NOT given in the document - these are the values you chose.)
+
+Step 4: Assign IP addresses (router interfaces) - REFERENCE LIST ONLY, no action needed here.
+        Move to Step 5 (the IPs are assigned there using the commands):
+   * R0: fa0/0 10.10.10.1/30   | fa0/1 192.168.1.1/24
+   * R1: fa0/0 10.10.10.2/30   | fa0/1 10.101.10.1/30
+   * R2: fa0/0 10.101.10.2/30  | fa0/1 192.168.2.1/24
+
+Step 5: Configure the interfaces:
+
+ Configure Router R0
+   Router>en
+   Router#conf t
+   Router(config)#int fa0/0
+   Router(config-if)#ip add 10.10.10.1 255.255.255.252
+   Router(config-if)#no shut
+   Router(config-if)#exit
+   Router(config)#int fa0/1
+   Router(config-if)#ip add 192.168.1.1 255.255.255.0
+   Router(config-if)#no shut
+   Router(config-if)#exit
+   Router(config)#exit
+   Router#wr
+
+ Configure Router R1
+   Router>en
+   Router#conf t
+   Router(config)#int fa0/0
+   Router(config-if)#ip add 10.10.10.2 255.255.255.252
+   Router(config-if)#no shut
+   Router(config-if)#exit
+   Router(config)#int fa0/1
+   Router(config-if)#ip add 10.101.10.1 255.255.255.252
+   Router(config-if)#no shut
+   Router(config-if)#exit
+   Router(config)#exit
+   Router#wr
+
+ Configure Router R2
+   Router>en
+   Router#conf t
+   Router(config)#int fa0/0
+   Router(config-if)#ip add 10.101.10.2 255.255.255.252
+   Router(config-if)#no shut
+   Router(config-if)#exit
+   Router(config)#int fa0/1
+   Router(config-if)#ip add 192.168.2.1 255.255.255.0
+   Router(config-if)#no shut
+   Router(config-if)#exit
+   Router(config)#exit
+   Router#wr
+
+Step 6: Configure OSPF (type "conf t" first - you are at Router# after wr):
+
+ Configure Router R0 for OSPF
+   Router(config)#router ospf 24222
+   Router(config-router)#network 10.10.10.0 0.0.0.3 area 0
+   Router(config-router)#network 192.168.1.0 0.0.0.255 area 0
+   Router(config-router)#exit
+
+ Configure Router R1 for OSPF
+   Router(config-if)#router ospf 24222
+   Router(config-router)#network 10.10.10.0 0.0.0.3 area 0
+   Router(config-router)#network 10.101.10.0 0.0.0.3 area 1
+   Router(config-router)#exit
+
+ Configure Router R2 for OSPF
+   Router(config)#router ospf 24222
+   Router(config-router)#network 10.101.10.2 0.0.0.3 area 1
+   Router(config-router)#network 192.168.2.0 0.0.0.255 area 1
+   Router(config-router)#exit
+
+Step 7: Check the connectivity (type "end" first to get back to Router#):
+
+ Show IP Connectivity on R0 / R1 / R2
+   Router#sh ip route ospf
+   (R0 and R2 show "O IA" routes; R1 shows "O" routes)
+
+ Show IP Connectivity of neighbor on R0 / R2
+   Router#sh ip ospf neighbor
+
+ Show IP Connectivity of neighbor on R1
+   Router>en
+   Router#sh ip ospf neighbor
+
+ Expected: neighbors in state FULL.
+
+Notes:
+ - Wait about 40 seconds after OSPF config before the checks.
+ - Document's sample output uses different addresses for the R1-R2 link than its
+   configuration; follow the configuration. Your addresses may differ slightly.
+ - "wr" works only on Router#.
+ - Optional (not in document): ping from Laptop0 to Laptop1 (Desktop > Command Prompt).
+

@@ -1,0 +1,88 @@
+==================================================
+PRACTICAL 5
+AIM: Implement Standard IPv4 ACLs
+==================================================
+
+Step 1: Add 2 routers (1841): Router0 (R0), Router1 (R1); 2 switches (2950-24); 3 PC-PT: PC0, PC1, PC2.
+
+Step 2: Make manual connection (Connections tab - choose the cable yourself):
+   * R0 fa0/0 --- R1 fa0/0       (Copper Cross-Over, network 192.168.3.0/24)
+   * R0 fa0/1 --- Switch(left) Fa0/1     (Copper Straight-Through)
+   * PC0 Fa0 --- Switch(left) Fa0/2      (Copper Straight-Through)
+   * R1 fa0/1 --- Switch(right) Fa0/1    (Copper Straight-Through)
+   * PC1 Fa0 --- Switch(right) Fa0/2     (Copper Straight-Through)
+   * PC2 Fa0 --- Switch(right) Fa0/3     (Copper Straight-Through)
+
+Step 3: Assign IP addresses (PC > Desktop > IP Configuration > Static):
+   * PC0: ipv4: 192.168.1.100, subnet mask 255.255.255.0, default gateway 192.168.1.1
+   * PC1: ipv4: 192.168.2.100, subnet mask 255.255.255.0, default gateway 192.168.2.1
+   * PC2: ipv4: 192.168.2.101, subnet mask 255.255.255.0, default gateway 192.168.2.1
+   (Mask and gateways are NOT given in the document - these are the values you chose.)
+
+Step 4: IP addresses for routers - REFERENCE LIST ONLY, no action needed here.
+        Move to Step 5 (the IPs are assigned there using the commands):
+   * R0: fa0/0 192.168.3.1/24 | fa0/1 192.168.1.1/24
+   * R1: fa0/0 192.168.3.2/24 | fa0/1 192.168.2.1/24
+
+Step 5: Configure the routers:
+
+ Configure R0
+   Router>en
+   Router#conf t
+   Router(config)#host R0
+   R0(config)#int fa0/0
+   R0(config-if)#ip add 192.168.3.1 255.255.255.0
+   R0(config-if)#no shut
+   R0(config-if)#exit
+   R0(config)#int fa0/1
+   R0(config-if)#ip add 192.168.1.1 255.255.255.0
+   R0(config-if)#no shut
+   R0(config-if)#exit
+
+ Configure R1
+   Router>en
+   Router#conf t
+   Router(config)#host R1
+   R1(config)#int fa0/0
+   R1(config-if)#ip add 192.168.3.2 255.255.255.0
+   R1(config-if)#no shut
+   R1(config-if)#exit
+   R1(config)#int fa0/1
+   R1(config-if)#ip add 192.168.2.1 255.255.255.0
+   R1(config-if)#no shut
+   R1(config-if)#exit
+
+Step 6: Configure static routes:
+
+ Configure static route on R0
+   R0(config)#ip route 192.168.2.0 255.255.255.0 192.168.3.2
+   R0(config)#exit
+
+ Configure static route on R1
+   R1(config)#ip route 192.168.1.0 255.255.255.0 192.168.3.1
+   R1(config)#exit
+
+Step 7: Check before ACL (PC1 > Desktop > Command Prompt, then PC2):
+   ping 192.168.1.100
+   (Expected: Sent = 4, Received = 4, Lost = 0 from both PC1 and PC2)
+
+Step 8: Configure access list on R0:
+   (Source is 192.168.2.101, Destination is 192.168.1.100.
+    Standard ACL = source IP only, placed closest to destination = fa0/1 outbound.)
+   On R0's CLI type:
+   R0>en
+   R0#conf t
+   R0(config)#access-list 1 deny 192.168.2.101 0.0.0.0
+   R0(config)#access-list 1 permit any
+   R0(config)#int fa0/1
+   R0(config-if)#ip access-group 1 out
+
+Step 9: Check after ACL (Desktop > Command Prompt):
+   * PC2: ping 192.168.1.100   (should FAIL)
+   * PC1: ping 192.168.1.100   (should still work)
+
+Notes:
+ - Left-side links (R0, PC0 side) and right-side links (R1, PC1, PC2 side) follow the diagram.
+ - If you are still in config mode on a router, skip "en" and "conf t".
+ - Document's ping screenshots show PC1 and PC2 pinging PC0 successfully (before ACL).
+
