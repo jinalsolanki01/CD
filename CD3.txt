@@ -1,0 +1,157 @@
+Practical 3
+
+Q. Design a program to minimize the given DFA.
+
+Code:
+#include <stdio.h>
+#include <stdbool.h>
+#define MAX_STATES 20
+#define MAX_SYMBOLS 10
+
+int nStates, nSymbols, nFinal;
+int transition[MAX_STATES][MAX_SYMBOLS];
+int finalStates[MAX_STATES];
+bool isFinal[MAX_STATES] = {false};
+
+// Tracks which group ID each state currently belongs to
+int groupID[MAX_STATES];
+int nextGroupID[MAX_STATES];
+
+// Step 1: Initialize the first partition P0
+void initializePartition() {
+    for (int i = 0; i < nFinal; i++) {
+        isFinal[finalStates[i]] = true;
+    }
+
+    for (int i = 0; i < nStates; i++) {
+        if (isFinal[i]) {
+            groupID[i] = 1;//final
+        } else {
+            groupID[i] = 0;//non final
+        }
+    }
+}
+
+// Step 2 & 3: Refine partitions iteratively
+void refinePartitions() {
+    bool changed;
+
+    do {
+        changed = false;
+        int newGroupCount = 0;
+
+        for (int i = 0; i < nStates; i++) {
+            nextGroupID[i] = -1;
+        }
+
+        for (int i = 0; i < nStates; i++) {
+            if (nextGroupID[i] != -1) continue; // Already assigned a group in this pass
+
+            nextGroupID[i] = newGroupCount;
+
+            for (int j = i + 1; j < nStates; j++) {
+                if (nextGroupID[j] != -1) continue;
+
+                // Condition 1: They must belong to the same group in the *previous* partition
+                if (groupID[i] == groupID[j]) {
+                    bool behavesIdentically = true;
+
+                    // Condition 2: Their destinations must land in the same historical groups
+                    for (int s = 0; s < nSymbols; s++) {
+                        int destI = transition[i][s];
+                        int destJ = transition[j][s];
+
+                        if (groupID[destI] != groupID[destJ]) {
+                            behavesIdentically = false;
+                            break;
+                        }
+                    }
+
+                    if (behavesIdentically) {
+                        nextGroupID[j] = newGroupCount;
+                    }
+                }
+            }
+            newGroupCount++;
+        }
+
+        // Check if the partition layout actually changed from the last iteration
+        for (int i = 0; i < nStates; i++) {
+            if (groupID[i] != nextGroupID[i]) {
+                changed = true;
+            }
+            groupID[i] = nextGroupID[i]; // Update to the new partitions
+        }
+
+    } while (changed); // Loop breaks when P_(k+1) == P_k
+}
+
+// Step 4: Output the permanently merged state blocks
+void printMinimizedDFA() {
+    printf("\n--- Minimized DFA Equivalent States ---\n");
+    bool visited[MAX_STATES] = {false};
+
+    for (int i = 0; i < nStates; i++) {
+        if (visited[i]) continue;
+
+        printf("{ %d", i);
+        visited[i] = true;
+
+        for (int j = i + 1; j < nStates; j++) {
+            if (groupID[i] == groupID[j]) {
+                printf(", %d", j);
+                visited[j] = true;
+            }
+        }
+        printf(" }\n");
+    }
+}
+
+int main() {
+    printf("Enter number of states: ");
+    scanf("%d", &nStates);
+
+    printf("Enter number of input symbols: ");
+    scanf("%d", &nSymbols);
+
+    printf("Enter transition table (State x Symbol):\n");
+    for (int i = 0; i < nStates; i++) {
+        for (int j = 0; j < nSymbols; j++) {
+            printf("Transition for state %d on symbol %d: ", i, j);
+            scanf("%d", &transition[i][j]);
+        }
+    }
+
+    printf("Enter number of final states: ");
+    scanf("%d", &nFinal);
+
+    printf("Enter final states: ");
+    for (int i = 0; i < nFinal; i++) {
+        scanf("%d", &finalStates[i]);
+    }
+
+    initializePartition();
+    refinePartitions();
+    printMinimizedDFA();
+
+    return 0;
+}
+
+
+output:
+
+number of states : 5
+number of input symbol : 2
+transition table (state x symbol) :
+1
+2
+1
+3
+1
+2
+1
+4
+1
+2
+number of final states : 1
+final states : 4
